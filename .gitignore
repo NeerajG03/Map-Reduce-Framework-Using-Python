@@ -1,0 +1,12 @@
+/Client/temp_partitions
+/Worker/FileStore
+/Master/Metadata
+
+/Worker/__pycache__
+/__pycache__
+/Master/__pycache__
+
+/TestData
+/Worker/worker_tempfiles
+/Worker/temp_handler
+
