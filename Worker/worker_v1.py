@@ -61,11 +61,6 @@ class handler(http.server.BaseHTTPRequestHandler):
             worker_obj.lines = ""
             worker_obj.newoutfile = None
             worker_obj.outfile = None
-            self.send_response(200)
-            self.send_header('Content-type','text/html')
-            self.end_headers()
-            message = "Done"
-            self.wfile.write(bytes(message, "utf8"))
 
     def getwithcontent(self):
        content_length = int(self.headers['Content-Length'])
@@ -145,7 +140,7 @@ class handler(http.server.BaseHTTPRequestHandler):
             def post_req(value):
                 return requests.post(f"http://localhost:{value[0]}",data = value[1],params = {'request-type':'shufflesave'})
 
-            with ThreadPoolExecutor(max_workers=10) as pool:
+            with ThreadPoolExecutor(max_workers=20) as pool:
                 response_list = list(pool.map(post_req,url))
             # linesendres = requests.post(f"http://localhost:{each}",data = {'lines':tosend[each]},params = {'request-type':'shufflesave'})
             
@@ -156,46 +151,7 @@ class handler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             message = "Shuffling done"
             self.wfile.write(bytes(message, "utf8"))
-        # elif q['request-type']=="shuffler":
-        #     fields = self.getcontent()
-        #     print("in shuffler")
-        #     hashport,tosend = {},defaultdict(str)
-        #     for each in fields:
-        #         valofeach = ''.join([x.decode() for x in fields[each]])
-        #         hashport[int(each.decode())] = valofeach
-        #     send_req = {'request-type':'shufflesave'}
-        #     if not os.path.exists(f"../Worker/FileStore/DIR_{worker_obj.port}/Mapper_files/shuffler"):
-        #         os.mkdir(f"../Worker/FileStore/DIR_{worker_obj.port}/Mapper_files/shuffler",mode=0o777)
-            
-        #     with open(f"../Worker/FileStore/DIR_{worker_obj.port}/Mapper_files/{worker_obj.outfile}",'r') as afile:
-        #         for line in afile:
-        #             hashto = hashport[myHash(line.split(',')[0],len(hashport))]
-        #             if hashto == str(worker_obj.port):
-        #                 worker_obj.lines += line
-        #             else:
-        #                 tosend[hashto] += line
-
-        #     # for each in dict(tosend):        
-        #     #     with open(f"../Worker/FileStore/DIR_{worker_obj.port}/Mapper_Files/shuffler/{each}",'a') as shuffletransmiter:
-        #     #         shuffletransmiter.write(line)    
-        #                 # tosend[hashto] += line             
-        #     url = [(each,tosend[each]) for each in dict(tosend)]
-        #     # print(url)
-        #     def post_req(value):
-        #         print("here aswell")
-        #         return requests.post(f"http://localhost:{value[0]}",data = value[1],params = {'request-type':'shufflesave'})
-
-        #     with ThreadPoolExecutor(max_workers=10) as pool:
-        #         response_list = list(pool.map(post_req,url))
-        #     # linesendres = requests.post(f"http://localhost:{each}",data = {'lines':tosend[each]},params = {'request-type':'shufflesave'})
-            
-        #     with open(f"../Worker/FileStore/DIR_{worker_obj.port}/Mapper_files/p_{worker_obj.outfile.split('.')[0].split('_')[1]}.out",'a') as writeto:
-        #         writeto.write(worker_obj.lines)
-        #     self.send_response(200)
-        #     self.send_header('Content-type','text/html')
-        #     self.end_headers()
-        #     message = "Shuffling done"
-        #     self.wfile.write(bytes(message, "utf8"))
+        
 
         elif q['request-type']=="shufflesave":
             content_len = int(self.headers['Content-Length'])
@@ -221,15 +177,15 @@ class handler(http.server.BaseHTTPRequestHandler):
         elif q['request-type']=="reducer": 
             print("here in reducer") 
             content,fields = self.getwithcontent()
-            print(fields)
+            # print(fields)
             content_len = int(self.headers['Content-Length'])
             with open(f"../Worker/FileStore/DIR_{worker_obj.port}/Mapper_files/reducer.py","w") as reducerfile:
                 reducerfile.write(content)
             with open(f"../Worker/FileStore/DIR_{worker_obj.port}/Mapper_files/{worker_obj.newoutfile}",'r') as tosort:
-                print("sorting")
+                # print("sorting")
                 data=(tosort).readlines()
                 data.sort()
-                print("sorted")
+                # print("sorted")
             with open(f"../Worker/FileStore/DIR_{worker_obj.port}/Mapper_files/{worker_obj.newoutfile}",'w') as tosort:
                 tosort.write(''.join(data))
                 print("written")
@@ -241,10 +197,6 @@ class handler(http.server.BaseHTTPRequestHandler):
                     mapper_run = subprocess.Popen(['python',f"..\\Worker\\FileStore\\DIR_{worker_obj.port}\\Mapper_files\\reducer.py"], stdout=PIPE, stdin = PIPE, stderr = PIPE ,shell=True)
                     with open(f"../Worker/FileStore/DIR_{worker_obj.port}/{savedas}",'wb') as outfile:
                         outfile.write(mapper_run.communicate(input=infile.read())[0])  
-                # command = f"type ..\\Worker\\worker_tempfiles\\{worker_obj.newoutfile} | python ..\\Worker\\temp_handler\\reducer.py " 
-                # with open(f"../Worker/FileStore/DIR_{worker_obj.port}/{savedas}",'w') as stdoutfile:
-                    # reducer_run = subprocess.run(command,stdout=stdoutfile, shell=True)
-                # os.chmod(f"../Worker/FileStore/DIR_{worker_obj.port}/{savedas}", 0o777)
                 print("running reducer")
             except Exception:
                 self.send_response(500)
@@ -255,7 +207,6 @@ class handler(http.server.BaseHTTPRequestHandler):
                 raise Exception("Failed to execute reducer!")
 
             print(f"Reducer.py finished running on WORKER_{worker_obj.port}")
-            # print(os.path.exists(f"../Worker/FileStore/DIR_{worker_obj.port}/{savedas}"))
             result = {
                 'filename' : savedas,
                 'size' : str(os.path.getsize(f"../Worker/FileStore/DIR_{worker_obj.port}/{savedas}"))
@@ -287,9 +238,6 @@ class Worker:
     def run(self):
         with socketserver.TCPServer(("", self.port), handler) as httpd:
             print("WORKER: serving at port", self.port)
-            # mythread = Thread(target = httpd.serve_forever())
-            # mythread.start()
-            # mythread.daemon = True
             httpd.serve_forever()
             
 

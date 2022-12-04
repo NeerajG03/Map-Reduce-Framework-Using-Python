@@ -55,7 +55,6 @@ class handler(http.server.SimpleHTTPRequestHandler):
                             requests.get(f"http://localhost:{each}/", params = (send_req), timeout=0.0000001)
                         except Exception:
                             pass
-                    print(message) 
                     self.wfile.write(bytes(f'{json.dumps(message)}', "utf8"))
         elif q['request-type'] == 'mapreduce':
             ports = None
@@ -89,7 +88,7 @@ class handler(http.server.SimpleHTTPRequestHandler):
             def post_req(value):
                 return requests.post(f"http://localhost:{value}/", params = (send_req),data = mapperfile)
 
-            with ThreadPoolExecutor(max_workers=10) as pool:
+            with ThreadPoolExecutor(max_workers=20) as pool:
                 response_list = list(pool.map(post_req,ports))
             
             for each in response_list:
@@ -140,7 +139,7 @@ class handler(http.server.SimpleHTTPRequestHandler):
             def post_req(value):
                 return requests.post(f"http://localhost:{value}/", params = (send_req),data = {'reducer':reducerfile})
 
-            with ThreadPoolExecutor(max_workers=10) as pool:
+            with ThreadPoolExecutor(max_workers=20) as pool:
                 response_list = list(pool.map(post_req,ports))
             
             for each in response_list:
@@ -174,8 +173,15 @@ class handler(http.server.SimpleHTTPRequestHandler):
             metadata[f"{q['filename'].split('.')[0]}-part-00000.txt"] = ports
             with open('./Metadata/references.json',"w") as raw_file:
                 json.dump(metadata,raw_file)
-            for each in ports:
-                final = requests.get(f"http://localhost:{each}/",params = {'request-type':'clear'})
+            
+            def get_req(value):
+                requests.get(f"http://localhost:{value}/",params = {'request-type':'clear'})
+
+            with ThreadPoolExecutor(max_workers=20) as pool:
+                response_list = list(pool.map(get_req,ports))
+
+            # for each in ports:
+            #     final = requests.get(f"http://localhost:{each}/",params = {'request-type':'clear'})
             # reducer done
             print("\nReducer has finished execution!")
             print("_______________________________________________________________________\n")

@@ -112,19 +112,16 @@ class Task:
                 if int(n) == n:
                     split.bylinecount(n)
                 else:
-                    split.bylinecount(n+1) 
-            # res2 = []
+                    split.bylinecount(n+1)
             ports = []
             count=0
             i=1
             list_of_url = [(i+x,each) for x,each in enumerate(workerlist)]
-            print(list_of_url)
             def post_req(value):
-                print(value)
                 with open(f'./temp_partitions/{filename}_{value[0]}.{extension}' ,'rb') as writefile:
                     return requests.post(f"http://localhost:{value[1]}",data = writefile.read(),params = {'request-type':'write','filename':f'{filename}_{value[0]}.{extension}'})
             
-            with ThreadPoolExecutor(max_workers=10) as pool:
+            with ThreadPoolExecutor(max_workers=20) as pool:
                 response_list = list(pool.map(post_req,list_of_url))
             
             for i,each in enumerate(response_list):
@@ -180,13 +177,14 @@ class Task:
 
     def mapreduce(self):
         print("in mapreduce")
-        # exception to handle argument error
+        # exception to handle argument error and
+        # exception to handle path error for mapper and 
+        # exception to hamdle path error for reducer
+
         if len(sys.argv)<5:
             raise Exception("Command not in format: \"python client.py [-mr] [directory of mapper] [directory of reducer] [filename of file in dfs]\"\n")
-        # exception to hamdle path error for mapper
         if not os.path.exists(sys.argv[2]):
             raise Exception(f"\"{sys.argv[2]}\" for mapper is not a valid directory\n")
-        # exception to hamdle path error for reduced
         if not os.path.exists(sys.argv[3]):
             raise Exception(f"\"{sys.argv[3]}\" for reducer is not a valid directory\n")
         send_req = {
@@ -208,9 +206,12 @@ class Task:
 
         
 os.umask(0) #newly created files or directories created will have no privileges initially revoked
+start = time.time()
 errors_client()
 if not os.path.exists("./temp_partitions"):
     os.mkdir("./temp_partitions",mode=0o777)
 task = Task(flag)
 runny = getattr(task,instructions[flag])
 runny()
+end=time.time()
+print("Time Elapsed : ",round(end-start,3))
